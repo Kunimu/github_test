@@ -24,7 +24,7 @@ var blockList;            //ブロックを収納する配列
 
 
 window.onload = function () {
-  game = new Game (background_WIDTH, background_HIGHT,);
+  game = new Game (background_WIDTH, background_HIGHT);
   game.fps = 24;
   game.preload(block_IMG, tile_IMG);
 
