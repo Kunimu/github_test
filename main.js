@@ -18,9 +18,9 @@ var dragStartFlg;         //ドラッグを開始したフラグ
 var dragStartX;           //ドラッグを開始したx座標
 var dragStartY;           //ドラッグを開始したy座標
 var dragBlock;            //ドラッグ中のブロック
-var changeFlg;
 
 var blockList;            //ブロックを収納する配列
+var moveblockList;        //ドラッグされたブロックを収納する配列
 
 
 window.onload = function () {
@@ -41,6 +41,8 @@ window.onload = function () {
   game.start();
 };
 
+
+
 //ゲーム画面
 GameStartScene = enchant.Class.create(enchant.Scene, {
   initialize : function () {
@@ -48,7 +50,7 @@ GameStartScene = enchant.Class.create(enchant.Scene, {
     //変数の初期化
     dragOkFlg    = false;
     dragStartFlg = false;
-    changeFlg    = false;
+    //changeFlg    = false;
 
     //背景の生成
     var tile = new Sprite (background_WIDTH, 400);
@@ -87,7 +89,6 @@ function createBlock(stage, x, y){
     if(dragOkFlg){
       dragBlock = e.target;
       dragStartFlg = true;
-      changeFlg = false;
 
       dragStartX = Math.floor(e.target.x / block_SIZE);
       dragStartY = Math.floor((e.target.y - 200) / block_SIZE);
@@ -100,46 +101,97 @@ function createBlock(stage, x, y){
     if(dragOkFlg){
       dragStartFlg = false;
       dragOkFlg    = true;
-      dragBlock.opacity = 1.0;
 
-      if(changeFlg){
-        console.log('パネルチェック');
-        console.log(timeLabel.time);
-      }else{
-        dragOkFlg = true;
+      //半透明のものを削除
+      moveblockList = new Array();
+      for (var i = 0; i < 30; i++){
+        if(blockList[i].opacity == 0.2){
+          blockList[i].scene.removeChild(blockList[i]);
+          
+         /* removeKind = blockList[i].no;
+          blockList[x + y * block_COL] = null;
+          blockList[i].tl.fadeOut(10).then(function(){
+            scene.removeChild(this);
+          });*/
+        }
       }
+      
+      dropBlock();
+
     }
   });
 
   //ドラッグ中のイベントを追加
   block.addEventListener('touchmove', function(e) {
-    if(dragOkFlg){
+    if(dragStartFlg){
       var dx = e.x;
       var dy = e.y;
 
       var nowX = Math.floor(dx / block_SIZE);
       var nowY = Math.floor((dy - 200) / block_SIZE);
 
-      //入れ替わってたら入れ替える
-          if(dragStartX !== nowX || dragStartY !== nowY){
-                changeFlg = true;
-                var moveBlock = blockList[nowX + nowY * block_COL];
-                moveBlock.x = dragStartX * block_SIZE;
-                moveBlock.y = dragStartY * block_SIZE + 200;
-                dragBlock.x = nowX * block_SIZE;
-                dragBlock.y = nowY * block_SIZE + 200;
-
-                blockList[nowX + nowY * block_COL] = blockList[dragStartX + dragStartY * block_COL];
-                blockList[dragStartX + dragStartY * block_COL] = moveBlock;
-                dragStartX = nowX;
-                dragStartY = nowY;
+      //ドラッグしたブロックを半透明にする
+        if(dragStartX !== nowX || dragStartY !== nowY){
+          if (blockList[nowX + nowY * block_COL].no == blockList[dragStartX + dragStartY * block_COL].no){
+   
+          //ドラッグしたブロックを透明化
+          blockList[nowX + nowY * block_COL].opacity = 0.2;
+          dragStartX = nowX;
+          dragStartY = nowY;
           }
+        }
     }
-
-
   }); 
 
 } 
+
+
+//消えた分を補充する 下からずらしてく
+function dropBlock(){
+  for(var x = 0; x < block_COL; x++){
+    var maxCount = 0; //画面外の何個目か
+    for(var y = block_ROW - 1; y >= 0; y--){
+      var block = getBlock(x,y);
+      //空だったらずらす
+      if(block == null){
+        var flg = true;   //whileようフラグ
+        var count = 1;    //何こ上までからか
+        while(flg){
+          //上が画面内か判定
+          if( y - count >= 0){
+            //上もからっぽ
+            if(getBlock(x,y-count) == null){
+              count++;
+            }else{
+              //ずらす
+              flg = false;
+              blockList[x + y * block_COL] = getBlock(x,y-count);
+              blockList[x + (y - count) * block_COL] = null;
+              getBlock(x,y).tl.moveBy(0,count * block_SIZE,10);
+            }
+          //画面外なので新しく作る
+          }else{
+            flg = false;
+            //画面外なので新しくつくる
+            maxCount++;
+            //var stamp = createStamp(scene,x,y - count - maxCount + 1);
+            var block = createBlock(scene,x,y);
+            block.y = block_SIZE * (y - count - maxCount + 1) + 200;
+            block.tl.moveBy(0,(count + maxCount - 1) * block_SIZE,10);
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+// ブロックの取得
+function getBlock(x,y){
+  return blockList[x + y * block_COL];
+}
+
 
 //ランダム関数
 function rand(min, max) {
