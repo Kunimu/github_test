@@ -19,6 +19,7 @@ var dragStartFlg;         //ドラッグを開始したフラグ
 var dragStartX;           //ドラッグを開始したx座標
 var dragStartY;           //ドラッグを開始したy座標
 var dragBlock;            //ドラッグ中のブロック
+var nearbyFlg;
 
 //パズルの判定
 var sameFlg;              //同じ数字かどうかのフラグ
@@ -28,20 +29,23 @@ var feverFlg;             //フィーバータイムの判定フラグ
 var blockList;            //ブロックを収納する配列
 var moveblockList;        //ドラッグされたブロックを収納する配列
 
-var scoreCount;           //スコアをカウント
+var scoreCount = 0;       //スコアをカウント
 var comboCount;           //コンボをカウント
 var chainCount;           //一度に消した数をカウント
-var bouns = 1;            //スコアのボーナス
-var feverBouns = 3;       //フィーバー時の得点のボーナス倍率
+var comboBouns = 100;     //コンボで増えるスコアのボーナス
+var chainBouns = 1000;    //連結で増えるボーナス
+var continuousBouns = 3;  //連続数を消した時のボーナス
+var scoreBouns = 1;       //スコアのボーナス
+var feverBouns = 5;       //フィーバー時の得点のボーナス倍率
 var feverCombo = 5;       //フィーバーに入るためのコンボ数
 var fever_NUM = 3;        //フィーバー時の最大数
 var fever_TIME = 10000;   //フィーバーの時間
  
  
 window.onload = function () {
-  game = new Game (background_WIDTH, background_HIGHT);
+  game = new Core (background_WIDTH, background_HIGHT);
   game.fps = 24;
-  game.preload(block_IMG, tile_IMG);
+  game.preload(block_IMG, tile_IMG, 'end.png');
   game.rootScene.backgroundColor = '#000';
  
   game.onload = function () {
@@ -49,23 +53,31 @@ window.onload = function () {
     game.pushScene(scene);
 
     //スコアの表示
-    var scoreLabel = new ScoreLabel(background_WIDTH / 2, 0);
-    game.rootScene.addChild(scoreLabel);
+    var scoreLabel = new ScoreLabel(0, 16);
+    //scoreLabel.scaleX = 3;
+    //scoreLabel.scaleY = 3;
+    scene.addChild(scoreLabel);
 
-  /*  //時間の表示
-    var timeLabel = new TimeLabal(0, 0, 'countup');
-    timeLabel.time = 30;
+    scene.onenterframe = function(){
+      scoreLabel.score = scoreCount;
+    }
+
+    //時間の表示
+    var timeLabel = new TimeLabel (0, 0, 'countdown');
+    //timeLabel.scaleX = 3;
+    //timeLabel.scaleY = 3;
+    timeLabel.time = 60;
     timeLabel.onenterframe = function () {
       if (timeLabel.time <= 0) {
-        game.end(scoreLabel, scoreLabel.score + '点！', game.assets['end.png']);
+        game.end(scoreLabel.score, scoreLabel.score + '点！', game.assets['end.png']);
       }
     }
-    game.rootScene.addChild(timeLabel);
-    */
+    scene.addChild(timeLabel);
+    
   }
 
   game.start();
-};
+}
  
  
  
@@ -77,9 +89,11 @@ GameStartScene = enchant.Class.create(enchant.Scene, {
     dragOkFlg    = false;
     dragStartFlg = false;
     feverFlg = true;
+
     comboCount = 0;
     scoreCount = 0;
- 
+
+
     //背景の生成
     var tile = new Sprite (background_WIDTH, 400);
     tile.image = game.assets[tile_IMG];
@@ -120,6 +134,7 @@ function createBlock(stage, x, y){
       dragStartFlg = true;
       sameFlg = true;
       continuousFlg = true;
+      nearbyFlg = false;
  
       dragStartX = Math.floor(e.target.x / block_SIZE);
       dragStartY = Math.floor((e.target.y - 200) / block_SIZE);
@@ -137,42 +152,47 @@ function createBlock(stage, x, y){
       if (chainCount == 1) {
         dragBlock.opacity = 1;
       }else{ 
-        //半透明のものを削除
-        for (var i = 0; i <= (block_COL * block_ROW) - 1; i++){
-          if(blockList[i].opacity == 0.2){
-            var block = blockList[i];
-            block.opacity = 1;
-            blockList[i] = null;
-            //フィードアウトして消えるようにする
-            block.tl.fadeOut(10).then(function(){
-              scene.removeChild(this);
-            });
+        //コンボの判定
+        if (chainCount >= 3) {
+          comboCount ++;
+        } else {
+          comboCount = 0;
+        }
+
+        //フィーバーのコンボ数に達すればフィーバー突入
+        if (comboCount >= feverCombo && feverFlg) {
+          feverTime();
+        }else{
+          //半透明のものを削除
+          for (var i = 0; i <= (block_COL * block_ROW) - 1; i++){
+            if(blockList[i].opacity == 0.2){
+              var block = blockList[i];
+              block.opacity = 1;
+              blockList[i] = null;
+              //フィードアウトして消えるようにする
+              block.tl.fadeOut(10).then(function(){
+                scene.removeChild(this);
+              });
+            }
+          }  
+          //特点の加算
+          if(sameFlg){
+            scoreCount += ((comboCount * comboBouns) + ((chainCount - 1) * chainBouns)) * scoreBouns;
+          } else if (continuousFlg){
+            scoreCount += ((comboCount * comboBouns) + ((chainCount - 1) * chainBouns)) * scoreBouns * continuousBouns;
           }
-        }  
+
+
           //消えたところにブロックを落とす
           dropBlock();
+        }  
       }  
     }  
-
-    //コンボの判定
-    if (chainCount >= 3) {
-      comboCount ++;
-    } else {
-      comboCount = 0;
-    }
-    //特点の加算
-    scoreCount += ((comboCount * 1000) + ((chainCount - 1) * 100)) * bouns;
-
 
     //確認
     console.log(comboCount + 'combo');
     console.log(chainCount + 'chain');
     console.log(scoreCount + '点');
-
-    //フィーバーのコンボ数に達すればフィーバー突入
-    if (comboCount >= feverCombo && feverFlg) {
-      feverTime();
-    }
 
   });
  
@@ -185,33 +205,62 @@ function createBlock(stage, x, y){
  
       var nowX = Math.floor(dx / block_SIZE);
       var nowY = Math.floor((dy - 200) / block_SIZE);
- 
-      //ドラッグしたブロックを半透明にする
-      //同じ数かどうか判定
-        if(dragStartX !== nowX || dragStartY !== nowY){
-          if (blockList[nowX + nowY * block_COL].no == blockList[dragStartX + dragStartY * block_COL].no && sameFlg){
-            continuousFlg = false;
-            //ドラッグしたブロックを透明化
+
+      if (nowY < 0 || nowY > block_ROW || nowX < 0 || nowX > block_COL){
+        return;
+      }
+
+      //タッチしているブロックがひとつ前と隣接しているか判断      
+      if ((Math.abs(dragStartX - nowX) == 0 && Math.abs(dragStartY - nowY) == 1) || (Math.abs(dragStartX - nowX) == 1 && Math.abs(dragStartY - nowY) == 0) ){
+      //同じ数かどうか判定 
+        if (blockList[nowX + nowY * block_COL].no == blockList[dragStartX + dragStartY * block_COL].no && sameFlg){
+          continuousFlg = false;
+          //ドラッグしたブロックを透明化
+          if (blockList[nowX + nowY * block_COL].opacity == 1){
             blockList[nowX + nowY * block_COL].opacity = 0.2;
-            //現在の座標をdragStartに代入
-            dragStartX = nowX;
-            dragStartY = nowY;
-
             chainCount ++;
-
-          //連続数の判定
-          }else if (blockList[nowX + nowY * block_COL].no == blockList[dragStartX + dragStartY * block_COL].no + 1 && continuousFlg){
-            sameFlg = false;
-            //ドラッグしたブロックを透明化
-            blockList[nowX + nowY * block_COL].opacity = 0.2;
-            //現在の座標をdragStartに代入
-            dragStartX = nowX;
-            dragStartY = nowY;
-
-            chainCount ++;
-
+          //戻った場合透明化をなくす            
+          }else if (blockList[nowX + nowY * block_COL].opacity == 0.2){
+            blockList[dragStartX + dragStartY * block_COL].opacity = 1;
+            chainCount --;
+            //一個まで戻ったら連続数でも消せるようにする
+            if(chainCount == 1){
+              continuousFlg = true;
+            }
           }
+
+          //現在の座標をdragStartに代入
+          dragStartX = nowX;
+          dragStartY = nowY;
+
+        //連続数の判定
+        }else if (blockList[nowX + nowY * block_COL].no == blockList[dragStartX + dragStartY * block_COL].no + 1 && continuousFlg){
+          sameFlg = false;
+          //ドラッグしたブロックを透明化
+          blockList[nowX + nowY * block_COL].opacity = 0.2;
+          //現在の座標をdragStartに代入
+          dragStartX = nowX;
+          dragStartY = nowY;
+
+          chainCount ++;
+        //連続判定のときのやり直し  
+        }else if (blockList[nowX + nowY * block_COL].no == blockList[dragStartX + dragStartY * block_COL].no - 1 && continuousFlg){
+          sameFlg = false;
+          //ドラッグした前のブロックの透明化を戻す
+          if (blockList[nowX + nowY * block_COL].opacity == 0.2){
+            blockList[dragStartX + dragStartY * block_COL].opacity = 1;
+          }
+          //現在の座標をdragStartに代入
+          dragStartX = nowX;
+          dragStartY = nowY;
+
+          chainCount --;
+          //一個まで戻ったら同じ数でも消せるようにする
+          if(chainCount == 1){
+            sameFlg = true;
+          }          
         }
+      }        
     }
   }); 
   return block;
@@ -298,11 +347,13 @@ function resetBlock(){
     }); 
   }
   //ブロックの再生成
+  dropBlock();
+ /* //ブロックの再生成
   for (var y = 0; y < block_ROW; y++){
     for(var x = 0; x < block_COL; x++){
       createBlock(scene, x, y);
     }
-  }
+  }*/
 }
 
  
