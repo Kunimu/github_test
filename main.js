@@ -1,18 +1,47 @@
+/*
+-------------------14/07/08---------------------------
+実装内容
+・スコア、タイムの表示。
+・制限時間で終了。
+・パズルのバグの修正。
+　ーすぐ横、縦以外のブロックも消せたのを修正。
+　ーパズル外をドラッグした時の無駄な計算を回避。
+　ードラッグが一方通行だったのを戻ってやり直せるように修正。
+・スコア換算の仕方を変更。
+
+実装予定（優先順）
+・コンボの表示。
+・フィーバー時の演出を追加。
+・画像変更。
+・数字の数、表示ブロックの数の調整。
+・スタート画面、スコア表示画面の追加。
+
+-------------------14/07/09---------------------------
+実装内容
+・コンボ数の表示
+・フィーバー時にFEVER TIME!と表示
+
+実装したい機能はほぼ実装できたので見た目を改善していきたいと思います。
+イラストレーターの体験版が期限切れになったのが想定外ですが、なんとか別の方法で画像を作って、
+レイアウトを変えていきます。
+その他難易度、得点の付け方などいろいろ調整していく予定です。
+*/
+
 enchant();
  
 //画像の設定
 var block_IMG = "number.png";    //ブロックの画像
-var tile_IMG = "tile.png";      //タイルの画像
+var tile_IMG  = "tile.png";      //タイルの画像
  
 //定数の設定
-var background_WIDTH = 480;     //背景の横
-var background_HIGHT = 600;     //背景の縦
-var block_SIZE = 80;        //ブロックのサイズ
-var normal_NUM = 5;         //通常時の最大数
-var block_NUM = normal_NUM; //ブロックの最大数
-var block_COL = 6;          //ブロックの配置する数横
-var block_ROW = 5;          //ブロックの配置する数縦
- 
+var background_WIDTH = 480;   //背景の横幅
+var background_HIGHT = 600;   //背景の縦幅
+var block_SIZE = 80;          //ブロックのサイズ
+var normal_NUM = 5;           //通常時の最大数
+var block_COL  = 6;           //ブロックの配置する数横
+var block_ROW  = 5;           //ブロックの配置する数縦
+var block_NUM  = normal_NUM;  //ブロックの最大数 
+
 //ドラッグ情報
 var dragOkFlg;            //ドラッグしていいか
 var dragStartFlg;         //ドラッグを開始したフラグ
@@ -41,7 +70,7 @@ var feverCombo = 5;       //フィーバーに入るためのコンボ数
 var fever_NUM = 3;        //フィーバー時の最大数
 var fever_TIME = 10000;   //フィーバーの時間(ms)
 
-var comboLabel;
+var comboLabel = Label();
 var feverLabel = Label();
  
  
@@ -167,6 +196,7 @@ function createBlock(stage, x, y){
         //フィーバーのコンボ数に達すればフィーバー突入
         if (comboCount >= feverCombo && feverFlg) {
           feverTime();
+          removeLabel(comboLabel);
         }else{
           //半透明のものを削除
           for (var i = 0; i <= (block_COL * block_ROW) - 1; i++){
@@ -193,7 +223,9 @@ function createBlock(stage, x, y){
 
           if (comboCount >= 1) {
             createComboLabel();
-          } 
+          } else{
+            removeLabel(comboLabel);
+          }
 
         }  
       }  
@@ -329,21 +361,15 @@ function feverTime() {
   //ブロックのリセット
   resetBlock(); 
 
- //    var feverLabel = new Label('FEVER TIME !');
-      feverLabel.label = 'FEVER TIME !';
-      feverLabel.font = "26px monospace"; 
+//     var feverLabel = new Label('FEVER TIME !');
+      feverLabel.text = 'FEVER TIME !';
+      feverLabel.font = "48px monospace"; 
       feverLabel.color = "rgb(255,255,0)";
-      feverLabel.x = 0;
-      feverLabel.y = 150;
+      feverLabel.x = (background_WIDTH - feverLabel.width) / 2;  //feverLabel.width = 300;
+      feverLabel.y = 112;
       feverLabel.chick = 0;
       feverLabel.colorNo = 0;
-      feverLabel.originX = 50;
-      feverLabel.originY = 50;
-      feverLabel.scaleX = 1.3;
-      feverLabel.scaleY = 1.3;
       scene.addChild(feverLabel);
-
-
  
       feverLabel.addEventListener(Event.ENTER_FRAME,function(){
       //きらきらさせる
@@ -385,52 +411,19 @@ function resetBlock(){
   }
   //ブロックの再生成
   dropBlock();
- /* //ブロックの再生成
-  for (var y = 0; y < block_ROW; y++){
-    for(var x = 0; x < block_COL; x++){
-      createBlock(scene, x, y);
-    }
-  }*/
+
 }
-
-
-
 
 //コンボラベルの生成
 function createComboLabel() {
 
-      var comboLabel = new Label();
       comboLabel.text = comboCount +'combo';
-      comboLabel.font = "26px monospace"; 
+      comboLabel.font = "48px monospace"; 
       comboLabel.color = "rgb(255,255,0)";
-      comboLabel.x = 96;
-      comboLabel.y = 100;
-      comboLabel.chick = 0;
-      comboLabel.colorNo = 0;
-      comboLabel.originX = 50;
-      comboLabel.originY = 50;
-      comboLabel.scaleX = 1.3;
-      comboLabel.scaleY = 1.3;
+      comboLabel.x = 144;
+      comboLabel.y = 48;
+
       scene.addChild(comboLabel);
-
-
-/*
-      comboLabel.push(comboLabel);      comboLabel.tl.fadeIn(10).and().moveBy(0,-40,8,enchant.Easing.QUAD_EASEOUT).and().scaleTo(1,10).moveBy(0,10,5);      
- 
-      comboLabel.addEventListener(Event.ENTER_FRAME,function(){
-      //きらきらさせる
-      comboLabel.chick++;
-        if(comboLabel.chick % 1 == 0){
-          comboLabel.colorNo++; 
-          comboLabel.colorNo %= comboColorList.length;
-          comboLabel.color = comboColorList[comboLabel.colorNo];
-        }
-      });
-*/
-//      setTimeout('scene.removeChild(comboLabel)', 5000);
-      comboLabel.tl.fadeOut(60).then(function(){
-        scene.removeChild(this);
-      }); 
       
 }
 
