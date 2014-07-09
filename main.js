@@ -1,28 +1,3 @@
-/*
-進捗報告書
-14/07/08
-実装内容
-・スコア、タイムの表示。
-・制限時間で終了。
-・パズルのバグの修正。
-　ーすぐ横、縦以外のブロックも消せたのを修正。
-　ーパズル外をドラッグした時の無駄な計算を回避。
-　ードラッグが一方通行だったのを戻ってやり直せるように修正。
-・スコア換算の仕方を変更。
-
-実装予定（優先順）
-・コンボの表示。
-・フィーバー時の演出を追加。
-・画像変更。
-・数字の数、表示ブロックの数の調整。
-・スタート画面、スコア表示画面の追加。
-
-この量のコードを一から書くのは初めてなので、かなり汚くなってきました。
-コメントで補っていますが、より見やすく、より効率的な処理になるように随時書き換えていきたいと思います。
-
-
-*/
-
 enchant();
  
 //画像の設定
@@ -64,7 +39,10 @@ var scoreBouns = 1;       //スコアのボーナス
 var feverBouns = 5;       //フィーバー時の得点のボーナス倍率
 var feverCombo = 5;       //フィーバーに入るためのコンボ数
 var fever_NUM = 3;        //フィーバー時の最大数
-var fever_TIME = 10000;   //フィーバーの時間
+var fever_TIME = 10000;   //フィーバーの時間(ms)
+
+var comboLabel;
+var feverLabel = Label();
  
  
 window.onload = function () {
@@ -72,6 +50,7 @@ window.onload = function () {
   game.fps = 24;
   game.preload(block_IMG, tile_IMG, 'end.png');
   game.rootScene.backgroundColor = '#000';
+  ColorList = new Array("rgb(255,0,0)","rgb(255,255,0)","rgb(0,255,0)","rgb(0,255,255)","rgb(0,0,255)","rgb(255,0,255)");
  
   game.onload = function () {
     scene = new GameStartScene ();
@@ -152,6 +131,7 @@ function createBlock(stage, x, y){
   //タッチを開始した時のイベントを追加
   block.addEventListener('touchstart', function(e) {
     chainCount = 1;
+
  
     //もしドラッグOKならドラッグスタート
     if(dragOkFlg){
@@ -210,6 +190,11 @@ function createBlock(stage, x, y){
 
           //消えたところにブロックを落とす
           dropBlock();
+
+          if (comboCount >= 1) {
+            createComboLabel();
+          } 
+
         }  
       }  
     }  
@@ -342,7 +327,33 @@ function feverTime() {
   console.log('FEVER TIME !');
 
   //ブロックのリセット
-  resetBlock();  
+  resetBlock(); 
+
+ //    var feverLabel = new Label('FEVER TIME !');
+      feverLabel.label = 'FEVER TIME !';
+      feverLabel.font = "26px monospace"; 
+      feverLabel.color = "rgb(255,255,0)";
+      feverLabel.x = 0;
+      feverLabel.y = 150;
+      feverLabel.chick = 0;
+      feverLabel.colorNo = 0;
+      feverLabel.originX = 50;
+      feverLabel.originY = 50;
+      feverLabel.scaleX = 1.3;
+      feverLabel.scaleY = 1.3;
+      scene.addChild(feverLabel);
+
+
+ 
+      feverLabel.addEventListener(Event.ENTER_FRAME,function(){
+      //きらきらさせる
+      feverLabel.chick++;
+        if(feverLabel.chick % 1 == 0){
+          feverLabel.colorNo++; 
+          feverLabel.colorNo %= ColorList.length;
+          feverLabel.color = ColorList[feverLabel.colorNo];
+        }
+      });
 
   setTimeout ('feverEnd()', fever_TIME);  //何秒か後にフィーバーを終了させる
 }
@@ -355,6 +366,7 @@ function feverEnd() {
   comboCount = 0;
   feverFlg = true;
 
+  scene.removeChild(feverLabel);
   //ブロックのリセット
   resetBlock();
 
@@ -381,7 +393,53 @@ function resetBlock(){
   }*/
 }
 
+
+
+
+//コンボラベルの生成
+function createComboLabel() {
+
+      var comboLabel = new Label();
+      comboLabel.text = comboCount +'combo';
+      comboLabel.font = "26px monospace"; 
+      comboLabel.color = "rgb(255,255,0)";
+      comboLabel.x = 96;
+      comboLabel.y = 100;
+      comboLabel.chick = 0;
+      comboLabel.colorNo = 0;
+      comboLabel.originX = 50;
+      comboLabel.originY = 50;
+      comboLabel.scaleX = 1.3;
+      comboLabel.scaleY = 1.3;
+      scene.addChild(comboLabel);
+
+
+/*
+      comboLabel.push(comboLabel);      comboLabel.tl.fadeIn(10).and().moveBy(0,-40,8,enchant.Easing.QUAD_EASEOUT).and().scaleTo(1,10).moveBy(0,10,5);      
  
+      comboLabel.addEventListener(Event.ENTER_FRAME,function(){
+      //きらきらさせる
+      comboLabel.chick++;
+        if(comboLabel.chick % 1 == 0){
+          comboLabel.colorNo++; 
+          comboLabel.colorNo %= comboColorList.length;
+          comboLabel.color = comboColorList[comboLabel.colorNo];
+        }
+      });
+*/
+//      setTimeout('scene.removeChild(comboLabel)', 5000);
+      comboLabel.tl.fadeOut(60).then(function(){
+        scene.removeChild(this);
+      }); 
+      
+}
+
+
+
+
+function removeLabel(Label) {
+        scene.removeChild(Label);
+} 
  
 // ブロックの取得
 function getBlock(x,y){
