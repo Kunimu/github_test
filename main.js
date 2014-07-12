@@ -69,7 +69,7 @@ var normal_NUM = 6;           //通常時の最大数
 var block_COL  = 8;           //ブロックの配置する数横
 var block_ROW  = 8;           //ブロックの配置する数縦
 var block_NUM  = normal_NUM;  //ブロックの最大数 
-var limitTime  = 3;          //制限時間 
+var limitTime  = 60;          //制限時間 
 
 //ドラッグ情報
 var dragOkFlg;                //ドラッグしていいか
