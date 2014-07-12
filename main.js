@@ -94,7 +94,7 @@ var scoreBouns = 1;           //スコアのボーナス
 var comboBouns = 100;         //コンボで増えるスコアのボーナス
 var chainBouns = 1000;        //連結で増えるボーナス
 var continuousBouns = 3;      //連続数を消した時のボーナス
-var lastfeverBouns  = 100000;  //最後のフィーバーの回数で決まるボーナス
+var lastfeverBouns  = 50000;  //最後のフィーバーの回数で決まるボーナス
 var lastcomboBouns  = 10000;   //最後の最大コンボ数でかかるボーナス
 
 //カウント
@@ -128,7 +128,6 @@ window.onload = function () {
     //ゲーム、結果画面、時間切れ画面の作成
     gamescene = new GameStartScene();
     resultscene = new ResultScene();
-    timeupscene = new TimeUpScene();
 
     //タッチするとゲームスタート
     game.rootScene.addEventListener('touchstart', function() {
@@ -177,24 +176,28 @@ function Time(){
       if (timeLabel.time <= 0) {
         timeLabel._count = 0;       //カウントダウンを止める
         timeLabel.time = 0;         //綺麗に０秒で止める
-        //少ししてからタイムアップを表示
-        setTimeout("game.replaceScene(timeupscene)", 100);
-        //タイムオーバーを表示後３秒したらタッチに反応
-        setTimeout("resultSwich()", 2000);
+        dragStartFlg = false;
+        dragOkFlg = false;
+            console.log(resultFlg);
+        TimeUp();
       } 
     }        
 
 }
+//タイムアップ時に表示
+function TimeUp(){
+    var timeupscene = new Sprite(background_WIDTH, background_HIGHT);
+    timeupscene.image = game.assets[timeup_IMG];
+    gamescene.addChild(timeupscene);
 
+    setTimeout("resultFlg = true", 2000);
 
-//タッチすると結果画面に行けるようにする
-function resultSwich (){
-  timeupscene.addEventListener('touchstart', function() {
-    Result();                          //ゲーム画面をレセット
-    game.replaceScene(resultscene); 
- 
-
-  }); 
+    if(resultFlg){
+      timeupscene.addEventListener('touchstart', function() {
+        Result();                          //ゲーム画面をレセット
+        game.replaceScene(resultscene);  
+      }); 
+    } 
 }
 
  
@@ -206,10 +209,14 @@ GameStartScene = enchant.Class.create(enchant.Scene, {
     dragOkFlg    = false;
     dragStartFlg = false;
     feverFlg     = true;
+    resultFlg = false;
+    console.log(resultFlg);
     //背景の生成
     var tile = new Sprite (background_WIDTH, background_HIGHT);
     tile.image = game.assets[background_IMG];
     this.addChild(tile);
+
+    
  
     //配列を作成しブロックを配置
     blockList = new Array();
@@ -218,6 +225,8 @@ GameStartScene = enchant.Class.create(enchant.Scene, {
         createBlock(this, x, y);
       }
     }
+
+
     dragOkFlg = true; 
   }
 });
@@ -513,18 +522,7 @@ function createComboLabel() {
 }
 
 
-//タイムアップ画面
-TimeUpScene = enchant.Class.create(enchant.Scene, {
-  initialize : function () {
-    Scene.call(this);
 
-    //タイムアップ時に表示
-    var timeupscene = new Sprite(background_WIDTH, background_HIGHT);
-    timeupscene.backgroundColor = '#000';
-    timeupscene.image = game.assets[timeup_IMG];
-    this.addChild(timeupscene);
-  }  
-});
 
 
 //結果画面
@@ -537,7 +535,7 @@ ResultScene = enchant.Class.create(enchant.Scene, {
     resultscene.image = game.assets[result_IMG];
     this.addChild(resultscene);
 
-    myLabel(40, 320, this, '#ff0', 'SCORE');
+    myLabel(40, 320, this, '#fff', 'SCORE');
     myLabel(40, 400, this, '#ff0', 'BOUNS POINT')
     myLabel(40, 480, this, '#fff', 'MAX COMBO');
     myLabel(40, 560, this, '#fff', 'FEVER');
@@ -555,6 +553,7 @@ ResultScene = enchant.Class.create(enchant.Scene, {
       game.replaceScene(gamescene);
       Time();
       Score();
+      ResetResult();
     });    
 
     //トップに戻るボタン
@@ -566,6 +565,7 @@ ResultScene = enchant.Class.create(enchant.Scene, {
 
     //トップボタンをおした時の操作
     topButton.addEventListener('touchstart', function() {
+      ResetResult();
       game.popScene(resultscene);
     });    
     
@@ -581,7 +581,7 @@ function Result() {
   //合計スコアを計算
   totalscore = scoreCount + (fevercount * lastfeverBouns) + (maxcombocount * lastcomboBouns) ;
 
-  myLabel(480, 320, resultscene, '#fff', scoreCount);
+  myLabel(480, 320, resultscene, '#ff0', scoreCount);
   myLabel(280, 480, resultscene, '#0f0', maxcombocount + ' combo');
   myLabel(280, 560, resultscene, '#0f0', fevercount + ' 回');
   myLabel(480, 480, resultscene, '#ff0', maxcombocount * lastcomboBouns);
@@ -594,6 +594,12 @@ function Result() {
 function ResetGame () {
   gamescene = null; 
   gamescene = new GameStartScene();
+}
+
+//結果画面のリセット
+function ResetResult () {
+  resultscene = null; 
+  resultscene = new ResultScene();
 }
 
 
